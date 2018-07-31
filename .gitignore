@@ -194,3 +194,6 @@ output_html/old_html.txt
 # ignore unnecessary vi files
 Untitled2.vi
 MonitorAlertTester.vi
+
+# ignore unnecessary file used during debugging
+test.xml
