@@ -2,6 +2,7 @@ import gcn_custom as gcn
 import os
 
 DCT_LOC_PICKLE = 'dct_loc.pickle'
+DCT_ASTROPLAN_LOC_PICKLE = 'dct_astroplan_loc.pickle'
 ARCHIVED_XML_DIR = "processed_xml"
 OUTPUT_HTML_DIR = "output_html"
 TEMPLATE_HTML_DIR = "html_templates"

@@ -8,6 +8,8 @@ from astropy.coordinates import EarthLocation, SkyCoord
 from astropy.time import Time
 from astropy.coordinates import AltAz
 import pickle
+from astroplan import Observer, FixedTarget
+from datetime import timezone
 
 notice_types = settings.EXCLUDED_NOTICE_TYPES
 archived_xml_dir = settings.ARCHIVED_XML_DIR
@@ -23,6 +25,17 @@ def dct_loc():
     except FileNotFoundError:
         dct_loc_obj = EarthLocation.of_site('Discovery Channel Telescope')
         file = open(settings.DCT_LOC_PICKLE, 'wb')
+        pickle.dump(dct_loc_obj, file)
+        file.close()
+        return dct_loc_obj
+
+
+def dct_astroplan_loc():
+    try:
+        return pickle.load(open(settings.DCT_ASTROPLAN_LOC_PICKLE, 'rb'))
+    except FileNotFoundError:
+        dct_loc_obj = Observer.at_site('Discovery Channel Telescope')
+        file = open(settings.DCT_ASTROPLAN_LOC_PICKLE, 'wb')
         pickle.dump(dct_loc_obj, file)
         file.close()
         return dct_loc_obj
@@ -108,6 +121,18 @@ def list_plus(possible_list):
         else:
             return []
     return possible_list
+
+
+class GRBVisibilityAtDCT:
+    def __init__(self, ra, dec, unit, utc_time):
+        self.coord = SkyCoord(ra, dec, unit=unit)
+        self.time = Time(utc_time)
+        self.dct = dct_astroplan_loc()
+        self.grb = FixedTarget(name='GRB', coord=self.coord)
+        self.target_is_up = self.dct.target_is_up(self.time.now(), self.grb)
+        self.target_rise_time = self.dct.target_rise_time(self.time.now(), self.grb)
+        self.target_set_time = self.dct.target_set_time(self.time.now(), self.grb)
+        self.target_rise_time_local = self.target_rise_time.datetime.replace(tzinfo=timezone.utc).astimezone(tz=None)
 
 
 class HTMLOutput:
