@@ -8,7 +8,6 @@ from os.path import join
 def get_notice_type(file_string):
     split_string = file_string.split('.')
     file_string = ''.join(split_string[:len(split_string)-1])
-    print(file_string)
     split_string = file_string.split('_')
     return int(split_string[len(split_string)-1])
 
