@@ -2,7 +2,6 @@ from gcnmonitor import (
     HTMLOutput, GCNProcessor, archived_xml_dir, html_templates_dict, template_html_dir, output_html_dir, list_plus
 )
 import os
-from datetime import datetime as dt
 from six.moves.urllib.parse import quote_plus
 from collections import OrderedDict
 
