@@ -1,4 +1,5 @@
-import gcn_custom as gcn
+# import gcn_custom as gcn
+import gcn
 import settings
 import os
 from xmltodict import parse, unparse
@@ -10,6 +11,8 @@ from astropy.coordinates import AltAz
 import pickle
 from astroplan import Observer, FixedTarget
 from datetime import timezone
+from datetime import datetime as dt
+from datetime import timedelta as td
 
 notice_types = settings.EXCLUDED_NOTICE_TYPES
 archived_xml_dir = settings.ARCHIVED_XML_DIR
@@ -20,25 +23,43 @@ html_templates_dict = settings.HTML_TEMPLATES_DICT
 
 
 def dct_loc():
+    location_name = 'Discovery Channel Telescope'
     try:
-        return pickle.load(open(settings.DCT_LOC_PICKLE, 'rb'))
+        dct_loc_dict = pickle.load(open(settings.DCT_LOC_PICKLE, 'rb'))
     except FileNotFoundError:
-        dct_loc_obj = EarthLocation.of_site('Discovery Channel Telescope')
+        dct_loc_dict = {'archive_time': dt.utcnow(), 'location': EarthLocation.of_site(location_name)}
         file = open(settings.DCT_LOC_PICKLE, 'wb')
-        pickle.dump(dct_loc_obj, file)
+        pickle.dump(dct_loc_dict, file)
         file.close()
-        return dct_loc_obj
+    archive_time = dct_loc_dict['archive_time']
+    dct_loc_obj = dct_loc_dict['location']
+    if (dt.utcnow()-archive_time) > td(days=2):
+        dct_loc_dict = {'archive_time': dt.utcnow(), 'location': EarthLocation.of_site(location_name)}
+        file = open(settings.DCT_LOC_PICKLE, 'wb')
+        pickle.dump(dct_loc_dict, file)
+        file.close()
+    return dct_loc_obj
 
 
 def dct_astroplan_loc():
+    location_name = 'Discovery Channel Telescope'
     try:
-        return pickle.load(open(settings.DCT_ASTROPLAN_LOC_PICKLE, 'rb'))
+        dct_loc_dict = pickle.load(open(settings.DCT_ASTROPLAN_LOC_PICKLE, 'rb'))
     except FileNotFoundError:
-        dct_loc_obj = Observer.at_site('Discovery Channel Telescope')
+        dct_loc_dict = {'archive_time': dt.utcnow(), 'location': Observer.at_site(location_name)}
         file = open(settings.DCT_ASTROPLAN_LOC_PICKLE, 'wb')
-        pickle.dump(dct_loc_obj, file)
+        pickle.dump(dct_loc_dict, file)
         file.close()
-        return dct_loc_obj
+    archive_time = dct_loc_dict['archive_time']
+    dct_loc_obj = dct_loc_dict['location']
+    if (dt.utcnow()-archive_time) > td(days=2):
+        from astroplan import download_IERS_A
+        download_IERS_A()
+        dct_loc_dict = {'archive_time': dt.utcnow(), 'location': Observer.at_site(location_name)}
+        file = open(settings.DCT_ASTROPLAN_LOC_PICKLE, 'wb')
+        pickle.dump(dct_loc_dict, file)
+        file.close()
+    return dct_loc_obj
 
 
 def is_blank_dict(test_dict):
@@ -83,10 +104,10 @@ def xml_tag_loader(xml_dictionary, key_tuple):
 
 
 def radec_to_altaz(
-        ra, dec, time_iso_str, unit,
+        ra, dec, unit,
         observing_location=dct_loc(),
 ):
-    observing_time = Time(time_iso_str)
+    observing_time = Time(str(dt.utcnow()))
     aa = AltAz(location=observing_location, obstime=observing_time)
     coord = SkyCoord(ra, dec, unit=unit)
     altaz_coord = coord.transform_to(aa)
@@ -123,15 +144,16 @@ def list_plus(possible_list):
     return possible_list
 
 
-class GRBVisibilityAtDCT:
-    def __init__(self, ra, dec, unit, utc_time):
+class TargetVisibilityAtDCT:
+    def __init__(self, ra, dec, unit,):
         self.coord = SkyCoord(ra, dec, unit=unit)
-        self.time = Time(utc_time)
+        # self.time = Time(utc_time)
+        self.time_now = Time(str(dt.utcnow()))
         self.dct = dct_astroplan_loc()
-        self.grb = FixedTarget(name='GRB', coord=self.coord)
-        self.target_is_up = self.dct.target_is_up(self.time.now(), self.grb)
-        self.target_rise_time = self.dct.target_rise_time(self.time.now(), self.grb)
-        self.target_set_time = self.dct.target_set_time(self.time.now(), self.grb)
+        self.target = FixedTarget(name='Target', coord=self.coord)
+        self.target_is_up = self.dct.target_is_up(self.time_now, self.target)
+        self.target_rise_time = self.dct.target_rise_time(self.time_now, self.target, which=u'next')
+        self.target_set_time = self.dct.target_set_time(self.time_now, self.target, which=u'next')
         self.target_rise_time_local = self.target_rise_time.datetime.replace(tzinfo=timezone.utc).astimezone(tz=None)
 
 
@@ -182,9 +204,6 @@ class HTMLOutput:
         self.simple_row_html = open(simple_row_html, 'r').read()
 
     def container_xml_to_html(self):
-        iso_time = xml_tag_loader(self.xml_dict, (
-                'WhereWhen', 'ObsDataLocation', 'ObservationLocation', 'AstroCoords', 'Time', 'TimeInstant', 'ISOTime'
-            ))
         context = {
             'VOEvent': self.voevent_xml_to_html(),
             'What_Description': xml_tag_loader(self.xml_dict, ('What', 'Description')),
@@ -209,7 +228,7 @@ class HTMLOutput:
             )),
             'ALT': '',
             'AZ': '',
-            'VisibilityTime': '',
+            'CurrentlyVisible': '',
         }
         if context['WhereWhen_ObservationLocation_AstroCoords_Position2D_Name1'].lower() == 'ra':
             ra = context['WhereWhen_ObservationLocation_AstroCoords_Position2D_Value2_C1']
@@ -220,12 +239,27 @@ class HTMLOutput:
         else:
             return format_html(self.container_html, context)
         alt, az = radec_to_altaz(
-            ra, dec, iso_time, context['WhereWhen_ObservationLocation_AstroCoords_Position2D_unit']
+            ra, dec, context['WhereWhen_ObservationLocation_AstroCoords_Position2D_unit']
         )
         dec_places = count_decimal_places(ra)
         alt = format_decimal_places(alt, dec_places)
         az = format_decimal_places(az, dec_places)
         context['ALT'], context['AZ'] = (alt, az)
+        target_vis = TargetVisibilityAtDCT(
+            ra, dec, context['WhereWhen_ObservationLocation_AstroCoords_Position2D_unit'],
+        )
+        try:
+            context['TargetIsUp'] = target_vis.target_is_up
+        except Exception as e:
+            context['TargetIsUp'] = str(type(e))
+        try:
+            context['TargetRiseTime'] = target_vis.target_rise_time.datetime
+        except Exception as e:
+            context['TargetRiseTime'] = str(type(e))
+        try:
+            context['TargetSetTime'] = target_vis.target_set_time.datetime
+        except Exception as e:
+            context['TargetSetTime'] = str(type(e))
         return format_html(self.container_html, context)
 
     def simple_row_xml_to_html(self, left_col_str, right_col_str):
@@ -655,7 +689,7 @@ class GCNProcessor:
         ivorn = self.root.attrib['ivorn']
         split_ivorn = ivorn.split('/')
         ivorn = split_ivorn[len(split_ivorn) - 1]
-        filename = quote_plus(ivorn) + '.xml'
+        filename = '{1}_{0}.xml'.format(gcn.handlers.get_notice_type(self.root), quote_plus(ivorn))
         file_location = os.path.join(self.archived_xml_dir, filename)
         with open(file_location, 'w') as f:
             f.write(self.incoming_xml)

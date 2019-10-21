@@ -1,8 +1,15 @@
 from xmltodict import parse
 from gcnmonitor import xml_tag_loader
-from settings import OUTPUT_HTML_DIR
+from settings import OUTPUT_HTML_DIR, INCLUDE_ALERT_MESSAGES
 from os import listdir
 from os.path import join
+
+
+def get_notice_type(file_string):
+    split_string = file_string.split('.')
+    file_string = ''.join(split_string[:len(split_string)-2])
+    split_string = file_string.split('_')
+    return int(split_string[len(split_string)-1])
 
 
 def get_alert_message(html_filename):
@@ -26,8 +33,11 @@ def get_new_alerts():
     for file in listdir(OUTPUT_HTML_DIR):
         if file.endswith('.html'):
             if file not in old_html_files:
-                print(file)
-                print("Target of Opportunity!\n" + get_alert_message(join(OUTPUT_HTML_DIR, file))+"\n")
+                if get_notice_type(file) in INCLUDE_ALERT_MESSAGES:
+                    print("Target of Opportunity!\n" + get_alert_message(join(OUTPUT_HTML_DIR, file))+"\n")
+                    print(file)
+                else:
+                    print('Ignore')
                 logger.write(file + '\n')
     logger.close()
 
