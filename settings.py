@@ -182,8 +182,8 @@ EXCLUDED_NOTICE_TYPES = (
 )
 
 INCLUDE_ALERT_MESSAGES = (
-    # gcn.notice_types.SWIFT_POINTDIR,
-    # gcn.notice_types.SWIFT_ACTUAL_POINTDIR,
+    gcn.notice_types.SWIFT_POINTDIR,
+    gcn.notice_types.SWIFT_ACTUAL_POINTDIR,
     gcn.notice_types.SWIFT_SC_SLEW,
     gcn.notice_types.SWIFT_TOO_SC_SLEW,
     gcn.notice_types.SWIFT_TOO_FOM,
@@ -198,8 +198,8 @@ INCLUDE_ALERT_MESSAGES = (
     gcn.notice_types.SWIFT_BAT_QL_POS,
     gcn.notice_types.SWIFT_BAT_SCALEDMAP,
     gcn.notice_types.SWIFT_BAT_SLEW_POS,
-    # gcn.notice_types.SWIFT_BAT_SUBSUB,
-    # gcn.notice_types.SWIFT_BAT_SUB_THRESHOLD,
+    gcn.notice_types.SWIFT_BAT_SUBSUB,
+    gcn.notice_types.SWIFT_BAT_SUB_THRESHOLD,
     gcn.notice_types.SWIFT_BAT_TRANS,
     gcn.notice_types.SWIFT_FOM_OBS,
     gcn.notice_types.SWIFT_FOM_PPT_ARG_ERR,

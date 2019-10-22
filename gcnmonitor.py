@@ -1,4 +1,5 @@
 # import gcn_custom as gcn
+import warnings
 import gcn
 import settings
 import os
@@ -9,10 +10,13 @@ from astropy.coordinates import EarthLocation, SkyCoord
 from astropy.time import Time
 from astropy.coordinates import AltAz
 import pickle
-from astroplan import Observer, FixedTarget
 from datetime import timezone
 from datetime import datetime as dt
 from datetime import timedelta as td
+from astropy.utils.exceptions import AstropyDeprecationWarning
+warnings.filterwarnings("ignore", category=AstropyDeprecationWarning)
+from astroplan import Observer, FixedTarget
+
 
 notice_types = settings.EXCLUDED_NOTICE_TYPES
 archived_xml_dir = settings.ARCHIVED_XML_DIR
