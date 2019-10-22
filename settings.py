@@ -1,4 +1,4 @@
-import gcn_custom as gcn
+import gcn
 import os
 
 DCT_LOC_PICKLE = 'dct_loc.pickle'
@@ -178,7 +178,7 @@ EXCLUDED_NOTICE_TYPES = (
     gcn.notice_types.CALET_GBM_FLT_LC,
     gcn.notice_types.CALET_GBM_GND_LC,
     gcn.notice_types.AMON_ICECUBE_EHE,
-    gcn.notice_types.AMON_TEST_EVENT,
+    # gcn.notice_types.AMON_TEST_EVENT,
 )
 
 INCLUDE_ALERT_MESSAGES = (
